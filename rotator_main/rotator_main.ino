@@ -162,41 +162,60 @@ void drawCompass() {
   // Nakreslení růžice
   int centerX = tft.width() / 2;
   int centerY = tft.height() / 2;
-  int radius = min(centerX, centerY) - 10; // Větší kružnice (šipka bude uvnitř)
+  int radius = min(centerX, centerY) - 27; // Větší kružnice o 3 body (bylo -30)
   
   // Jedna vnější kružnice
   tft.drawCircle(centerX, centerY, radius, ST77XX_WHITE);
+  
+  // Označení světových stran uvnitř kružnice
+  tft.setTextSize(2);
+  tft.setTextColor(ST77XX_WHITE);
+  
+  // Sever (N) - nahoře
+  tft.setCursor(centerX - 8, centerY - radius + 10);
+  tft.print("N");
+  
+  // Východ (E) - vpravo
+  tft.setCursor(centerX + radius - 25, centerY - 8);
+  tft.print("E");
+  
+  // Jih (S) - dole
+  tft.setCursor(centerX - 8, centerY + radius - 25);
+  tft.print("S");
+  
+  // Západ (W) - vlevo
+  tft.setCursor(centerX - radius + 10, centerY - 8);
+  tft.print("W");
 }
 
 void updateDisplay() {
   int centerX = tft.width() / 2;
   int centerY = tft.height() / 2;
-  int radius = min(centerX, centerY) - 10; // Stejný radius jako růžice
+  int radius = min(centerX, centerY) - 27; // Stejný radius jako růžice
   
   // Vymazání staré šipky (černým trojúhelníkem)
   if (lastDrawnAngle >= 0) {
     tft.fillTriangle(lastX1, lastY1, lastX2, lastY2, lastX3, lastY3, ST77XX_BLACK);
-    // Překreslení kruhu na místě kde byla šipka
-    tft.drawCircle(centerX, centerY, radius, ST77XX_WHITE);
   }
   
-  // Nová šipka - trojúhelník UVNITŘ kružnice
+  // Nová šipka - trojúhelník ZVENKU kružnice směřující ven (ostřejší)
   float arrowAngle = radians(currentRotatorAngle - 90); // -90° pro správnou orientaci (0° = nahoru)
-  int arrowLength = radius - 25; // Délka šipky od středu
+  int arrowLength = 15; // Délka šipky od kruhu ven
+  int arrowOffset = 5; // Posun šipky dál od kruhu o 5 bodů
   
-  // Špička trojúhelníku (blízko vnějšího kruhu)
-  int x1 = centerX + cos(arrowAngle) * (radius - 10);
-  int y1 = centerY + sin(arrowAngle) * (radius - 10);
+  // Špička trojúhelníku (daleko od kruhu)
+  int x1 = centerX + cos(arrowAngle) * (radius + arrowLength + arrowOffset);
+  int y1 = centerY + sin(arrowAngle) * (radius + arrowLength + arrowOffset);
   
-  // Levý roh základny (blíž ke středu)
-  float leftAngle = arrowAngle - 0.15;
-  int x2 = centerX + cos(leftAngle) * arrowLength;
-  int y2 = centerY + sin(leftAngle) * arrowLength;
+  // Levý roh základny (užší úhel = ostřejší trojúhelník)
+  float leftAngle = arrowAngle - 0.12; // bylo 0.2, nyní 0.12 = užší
+  int x2 = centerX + cos(leftAngle) * (radius + 2 + arrowOffset);
+  int y2 = centerY + sin(leftAngle) * (radius + 2 + arrowOffset);
   
-  // Pravý roh základny (blíž ke středu)
-  float rightAngle = arrowAngle + 0.15;
-  int x3 = centerX + cos(rightAngle) * arrowLength;
-  int y3 = centerY + sin(rightAngle) * arrowLength;
+  // Pravý roh základny (užší úhel = ostřejší trojúhelník)
+  float rightAngle = arrowAngle + 0.12; // bylo 0.2, nyní 0.12 = užší
+  int x3 = centerX + cos(rightAngle) * (radius + 2 + arrowOffset);
+  int y3 = centerY + sin(rightAngle) * (radius + 2 + arrowOffset);
   
   // Nakreslení červeného trojúhelníku
   tft.fillTriangle(x1, y1, x2, y2, x3, y3, ST77XX_RED);

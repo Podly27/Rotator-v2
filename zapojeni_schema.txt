@@ -1,0 +1,90 @@
+# ZAPOJENÍ SCHÉMA - Arduino Rotátor
+
+## Přehled komponent:
+- Arduino UNO
+- TFT displej ST7789V (240x320)
+- Víceotáčkový potenciometr 10kΩ
+- 2x Relé moduly (5V)
+- Piezo bzučák
+- Externí spínače pro motor (nezávislé na Arduinu)
+
+## ZAPOJENÍ PINŮ:
+
+### Arduino UNO → TFT Displej ST7789V:
+```
+Arduino Pin    TFT Pin    Popis
+----------    -------    -----
+5V            VCC        Napájení
+GND           GND        Zem
+Pin 10        CS         Chip Select
+Pin 8         DC         Data/Command
+Pin 9         RST        Reset
+Pin 11 (MOSI) SDA        Serial Data
+Pin 13 (SCK)  SCL        Serial Clock
+```
+
+### Arduino UNO → Potenciometr:
+```
+Arduino Pin    Potenciometr    Popis
+----------    -------------    -----
+5V            Pin 1           Napájení
+A0            Pin 2           Střední vývod (dělič)
+GND           Pin 3           Zem
+```
+
+### Arduino UNO → Relé moduly:
+```
+Arduino Pin    Relé Pin    Popis
+----------    ---------    -----
+Pin 2         IN1         Relé pro motor doleva
+Pin 3         IN2         Relé pro motor doprava
+5V            VCC         Napájení relé
+GND           GND         Zem relé
+```
+
+### Arduino UNO → Piezo bzučák:
+```
+Arduino Pin    Piezo    Popis
+----------    ------    -----
+Pin 7         +        Pozitivní vývod
+GND           -        Negativní vývod
+```
+
+## EXTERNÍ ZAPOJENÍ MOTORU:
+```
+Spínač Doleva:
+- Spínač → Relé 1 (NO kontakty)
+- Relé 1 → Motor (fáze L1)
+- Motor → Spínač (fáze L2)
+
+Spínač Doprava:
+- Spínač → Relé 2 (NO kontakty)
+- Relé 2 → Motor (fáze L1)
+- Motor → Spínač (fáze L2)
+```
+
+## NAPÁJENÍ:
+- Arduino UNO: 7-12V přes DC jack nebo USB
+- TFT displej: 5V z Arduina
+- Relé moduly: 5V z Arduina
+- Potenciometr: 5V z Arduina
+- Piezo bzučák: 5V z Arduina
+
+## BEZPEČNOSTNÍ POZNÁMKY:
+1. Relé moduly musí být aktivní LOW (HIGH = vypnuto)
+2. Motor je ovládán externími spínači, Arduino pouze vypíná relé při limitech
+3. Potenciometr je zapojen jako dělič napětí pro přesné měření
+4. Piezo bzučák varuje při dosažení bezpečnostních limitů
+
+## KALIBRACE:
+Po zapnutí se program automaticky načte pozici z potenciometru.
+Pro přesnou kalibraci:
+1. Nastav rotátor do střední pozice (360°)
+2. Otoč potenciometr do středu rozsahu
+3. Program si pozici zapamatuje
+
+## ROZSAHY:
+- Potenciometr: 0-1023 (ADC hodnota)
+- Úhel potenciometru: 0°-3600° (10 otáček)
+- Úhel rotátoru: 120°-480° (360° ± 120°)
+- Bezpečnostní limity: 270° a 450°

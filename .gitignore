@@ -1,0 +1,13 @@
+# Arduino IDE
+*.tmp
+*.bak
+*~
+*.swp
+
+# Mac
+.DS_Store
+
+# Backup soubory
+*.old
+*.backup
+

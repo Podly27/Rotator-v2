@@ -49,6 +49,17 @@ Arduino Pin    Piezo    Popis
 Pin 7         +        Pozitivní vývod
 GND           -        Negativní vývod
 ```
+## ZAPOJENÍ KABELU:
+```
+Konektor 7PIN:
+1 - potenciometr 1
+2 - potenciometr 2
+3 - potenciometr 3
+4 - motor společný
+5 - motor směr 1
+6 - motor směr 2
+7 - zem
+```
 
 ## EXTERNÍ ZAPOJENÍ MOTORU:
 ```

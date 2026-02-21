@@ -27,6 +27,7 @@ GND -----------------------E
 ```
 
 - Vysílač je open-collector (aktivně tahá DATA k zemi).
+- Poznámka: NANO používá inverted UART, takže TX je v idle LOW a NPN je vypnutý.
 - Pokud je třeba, lze použít i 2N7000, ale primárně je doporučen NPN dle schématu.
 
 ---
@@ -60,6 +61,7 @@ Doporučení pro 30 m kabel:
 - Pull-up 4k7 je výchozí.
 - Pokud jsou hrany pomalé, zkus 2k2.
 - Vést DATA co nejdál od 230 V vodičů.
+- Pokud DATA padá na ~0.5 V, zkontroluj, že NANO drží TX v idle LOW (inverted UART).
 
 ---
 

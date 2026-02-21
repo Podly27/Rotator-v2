@@ -468,6 +468,8 @@ void updateDisplay() {
   int y3 = centerY + sin(rightAngle) * (radius + 2 + arrowOffset);
 
   tft.fillTriangle(x1, y1, x2, y2, x3, y3, ST77XX_RED);
+  // Restore compass outline that can get clipped by arrow erase/draw.
+  tft.drawCircle(centerX, centerY, radius, ST77XX_WHITE);
 
   lastX1 = x1; lastY1 = y1;
   lastX2 = x2; lastY2 = y2;

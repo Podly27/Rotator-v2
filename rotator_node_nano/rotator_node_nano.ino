@@ -9,12 +9,15 @@
 #define TX_PIN 8
 #define RX_UNUSED_PIN 9
 
+#define DEBUG_SERIAL 1
+
 constexpr long LINK_BAUD = 9600;
 constexpr uint8_t OVERSAMPLE_COUNT = 32;
 constexpr float EMA_ALPHA = 0.2f;
 constexpr uint16_t SEND_PERIOD_MS = 50; // 20 Hz
 
-SoftwareSerial linkSerial(RX_UNUSED_PIN, TX_PIN);
+// Inverted logic so DATA line is standard UART (idle HIGH) through NPN.
+SoftwareSerial linkSerial(RX_UNUSED_PIN, TX_PIN, true);
 
 float emaAdc = 0.0f;
 bool emaInitialized = false;
@@ -38,8 +41,15 @@ int readAdcOversampled() {
 }
 
 void setup() {
-  linkSerial.begin(LINK_BAUD);
   pinMode(POT_PIN, INPUT);
+  pinMode(TX_PIN, OUTPUT);
+  digitalWrite(TX_PIN, LOW); // Inverted UART: idle LOW on TX => NPN OFF, DATA pulled HIGH.
+  delay(50);
+  linkSerial.begin(LINK_BAUD);
+#if DEBUG_SERIAL
+  Serial.begin(9600);
+  Serial.println("NANO v2: link up");
+#endif
 }
 
 void loop() {
@@ -68,4 +78,8 @@ void loop() {
   char line[24];
   snprintf(line, sizeof(line), "%s,%u\n", payload, crc);
   linkSerial.print(line);
+#if DEBUG_SERIAL
+  Serial.print("TX: ");
+  Serial.print(line);
+#endif
 }

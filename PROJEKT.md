@@ -33,11 +33,11 @@ Verze 2.0 proto používá:
 ## Zapojení v2 (shrnutí)
 
 ### UNO (shack)
-- RX data z linky: **D8** (SoftwareSerial)
-- TX diagnostika: **D9** (volitelné)
+- RX data z linky: **D4** (SoftwareSerial)
+- TX diagnostika: **D5** (volitelné)
 - Relé: D2, D3 (aktivní LOW)
 - Piezo: D7
-- TFT ST7789: CS=10, DC=A1, RST=A2, MOSI=11, SCK=13
+- TFT ST7789: CS=10, DC=8, RST=9, MOSI=11, SCK=13
 
 ### NANO (rotátor)
 - Potenciometr: A0
@@ -63,6 +63,19 @@ Původní analogová varianta nebyla odstraněna, je archivována:
 - `legacy/zapojeni_schema_v1.txt`
 
 Použij ji jen pokud potřebuješ původní analogovou architekturu s A0 po kabelu.
+
+## Versioning FW
+
+Verze FW je v `rotator_main/version.h` (MAJOR.MINOR.PATCH).  
+Při každé mezizměně bumpni `MINOR`.
+
+## Troubleshooting: DATA stuck LOW (~0.5 V)
+
+1. Odpoj bázi tranzistoru na NANO: DATA musí být ~5 V (pull-up OK).
+2. Na NANO musí být TX pin v idle HIGH ještě před `linkSerial.begin()`:
+   - `pinMode(TX_PIN, OUTPUT);`
+   - `digitalWrite(TX_PIN, LOW);` (při použitém NPN a inverted UART)
+3. Zkontroluj orientaci C/E tranzistoru a pull-up 4k7 na straně UNO.
 
 ## Bezpečnostní upozornění
 

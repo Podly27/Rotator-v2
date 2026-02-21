@@ -8,21 +8,26 @@
 #include <Adafruit_ST7789.h>
 #include <SPI.h>
 #include <SoftwareSerial.h>
+#include "version.h"
 
 // Definice pinů
 #define TFT_CS    10
-#define TFT_RST   A2
-#define TFT_DC    A1
+#define TFT_RST   9
+#define TFT_DC    8
 #define RELAY_LEFT_PIN  2
 #define RELAY_RIGHT_PIN 3
 #define BUZZER_PIN 7
 
-#define RX_PIN 8
-#define TX_PIN 9
+#define RX_PIN 4
+#define TX_PIN 5
+
+#define DEBUG_SERIAL 1
 
 constexpr long LINK_BAUD = 9600;
 constexpr uint16_t PACKET_TIMEOUT_MS = 1000;
 constexpr uint8_t RX_LINE_MAX = 32;
+constexpr uint8_t LINK_STREAK_REQUIRED = 3;
+constexpr uint16_t STARTUP_ANIM_MS = 1500;
 
 // Konstanty pro potenciometr
 constexpr int POT_MAX_VALUE = 1023;
@@ -66,6 +71,10 @@ unsigned long lastValidPacketMs = 0;
 unsigned long limitStateSinceMs = 0;
 unsigned long lastLimitBeepMs = 0;
 unsigned long lastLoopMs = 0;
+uint8_t validPacketStreak = 0;
+bool linkReady = false;
+unsigned long bootStartMs = 0;
+bool inBoot = true;
 
 uint32_t packetOkCount = 0;
 uint32_t packetCrcErrorCount = 0;
@@ -90,9 +99,21 @@ void applyRelayInterlock(bool blockLeft, bool blockRight);
 void updateBuzzer();
 void drawCompass();
 void updateDisplay();
+void renderBootFrame(unsigned long nowMs);
+
+#if DEBUG_SERIAL
+#define DBG_PRINTLN(x) Serial.println(x)
+#define DBG_PRINT(x) Serial.print(x)
+#define DBG_PRINT2(x, y) Serial.print(x, y)
+#else
+#define DBG_PRINTLN(x) do {} while (0)
+#define DBG_PRINT(x) do {} while (0)
+#define DBG_PRINT2(x, y) do {} while (0)
+#endif
 
 void setup() {
   Serial.begin(9600);
+  pinMode(RX_PIN, INPUT_PULLUP);  // Open-collector DATA musí mít klidovou úroveň HIGH.
   linkSerial.begin(LINK_BAUD);
 
   pinMode(RELAY_LEFT_PIN, OUTPUT);
@@ -100,12 +121,16 @@ void setup() {
   pinMode(BUZZER_PIN, OUTPUT);
   applyRelayInterlock(true, true);
 
-  Serial.println("Rotátor UNO v2 - inicializace...");
+  DBG_PRINTLN("Rotator UNO v2 - init");
 
   tft.init(240, 320);
   tft.setRotation(3);
+  tft.setTextWrap(false);
   tft.fillScreen(ST77XX_BLACK);
 
+  bootStartMs = millis();
+  inBoot = true;
+  renderBootFrame(bootStartMs);
   drawCompass();
 
   lastAngleStr = "INIT";
@@ -114,19 +139,37 @@ void setup() {
   lastStatusStr = "INIT";
   updateDisplay();
 
-  Serial.println("UNO čeká na data z NANO...");
+  DBG_PRINTLN("UNO waiting for data...");
 }
 
 void loop() {
   processIncomingPackets();
 
   unsigned long now = millis();
+  if (inBoot) {
+    renderBootFrame(now);
+    if ((now - bootStartMs) < STARTUP_ANIM_MS) {
+      return;
+    }
+    inBoot = false;
+    drawCompass();
+    lastAngleStr = "INIT";
+    lastPercentStr = "INIT";
+    lastFilterInfoStr = "INIT";
+    lastStatusStr = "INIT";
+  }
   if (now - lastLoopMs < LOOP_PERIOD_MS) {
     return;
   }
   lastLoopMs = now;
 
-  errorState = (lastValidPacketMs == 0) || ((now - lastValidPacketMs) > PACKET_TIMEOUT_MS);
+  if (!linkReady || lastValidPacketMs == 0 || ((now - lastValidPacketMs) > PACKET_TIMEOUT_MS)) {
+    linkReady = false;
+    validPacketStreak = 0;
+    errorState = true;
+  } else {
+    errorState = false;
+  }
 
   if (!errorState) {
     updatePositionFromAdc(filteredAdcValue);
@@ -136,22 +179,22 @@ void loop() {
   updateBuzzer();
   updateDisplay();
 
-  Serial.print("ADC RAW/FIL: ");
-  Serial.print(rawAdcValue);
-  Serial.print("/");
-  Serial.print(filteredAdcValue, 1);
-  Serial.print(" | %: ");
-  Serial.print(currentPotPercent, 2);
-  Serial.print(" | AZ: ");
-  Serial.print(currentRotatorAngle, 1);
-  Serial.print(" | PKT ok/crc/fmt: ");
-  Serial.print(packetOkCount);
-  Serial.print("/");
-  Serial.print(packetCrcErrorCount);
-  Serial.print("/");
-  Serial.print(packetFormatErrorCount);
-  Serial.print(" | E: ");
-  Serial.println(errorState);
+  DBG_PRINT("ADC RAW/FIL: ");
+  DBG_PRINT(rawAdcValue);
+  DBG_PRINT("/");
+  DBG_PRINT2(filteredAdcValue, 1);
+  DBG_PRINT(" | %: ");
+  DBG_PRINT2(currentPotPercent, 2);
+  DBG_PRINT(" | AZ: ");
+  DBG_PRINT2(currentRotatorAngle, 1);
+  DBG_PRINT(" | PKT ok/crc/fmt: ");
+  DBG_PRINT(packetOkCount);
+  DBG_PRINT("/");
+  DBG_PRINT(packetCrcErrorCount);
+  DBG_PRINT("/");
+  DBG_PRINT(packetFormatErrorCount);
+  DBG_PRINT(" | E: ");
+  DBG_PRINTLN(errorState);
 }
 
 void processIncomingPackets() {
@@ -175,8 +218,16 @@ void processIncomingPackets() {
             filteredAdcValue = filteredAdcValue * (1.0f - EMA_ALPHA) + adc * EMA_ALPHA;
           }
 
-          lastValidPacketMs = millis();
+          if (validPacketStreak < 255) {
+            validPacketStreak++;
+          }
+          if (validPacketStreak >= LINK_STREAK_REQUIRED) {
+            linkReady = true;
+            lastValidPacketMs = millis();
+          }
           packetOkCount++;
+        } else {
+          validPacketStreak = 0;
         }
       }
       rxPos = 0;
@@ -188,6 +239,7 @@ void processIncomingPackets() {
     } else {
       // Přetečení řádku -> zahoď paket
       rxPos = 0;
+      validPacketStreak = 0;
       packetFormatErrorCount++;
     }
   }
@@ -347,6 +399,48 @@ void drawCompass() {
 
   tft.setCursor(centerX - radius + 10, centerY - 8);
   tft.print("W");
+
+  tft.setTextSize(1);
+  tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+  tft.fillRect(2, 2, 150, 12, ST77XX_BLACK);
+  tft.setCursor(4, 4);
+  tft.print(FW_VERSION_STR);
+}
+
+void renderBootFrame(unsigned long nowMs) {
+  const int w = tft.width();
+  const int h = tft.height();
+  const int barX = 20;
+  const int barY = h - 34;
+  const int barW = w - 40;
+  const int barH = 12;
+  unsigned long elapsed = nowMs - bootStartMs;
+  int progress = (static_cast<unsigned long>(barW) * elapsed) / STARTUP_ANIM_MS;
+
+  tft.fillScreen(ST77XX_BLACK);
+  tft.setTextSize(2);
+  tft.setTextColor(ST77XX_CYAN, ST77XX_BLACK);
+  tft.setCursor(24, 26);
+  tft.print("ROTATOR BOOT");
+
+  tft.setTextSize(1);
+  tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+  tft.setCursor(24, 52);
+  tft.print(FW_VERSION_STR);
+  tft.setCursor(24, 64);
+  tft.print("DATA LINK: 1-WIRE");
+
+  int cx = w / 2;
+  int cy = h / 2 + 20;
+  int r = 44;
+  tft.drawCircle(cx, cy, r, ST77XX_WHITE);
+  float a = (elapsed % 1000UL) * 0.006283185f;
+  int mx = cx + static_cast<int>(cos(a) * r);
+  int my = cy + static_cast<int>(sin(a) * r);
+  tft.fillCircle(mx, my, 5, ST77XX_RED);
+
+  tft.drawRect(barX, barY, barW, barH, ST77XX_WHITE);
+  tft.fillRect(barX + 1, barY + 1, progress > 2 ? (progress - 2) : 0, barH - 2, ST77XX_GREEN);
 }
 
 void updateDisplay() {

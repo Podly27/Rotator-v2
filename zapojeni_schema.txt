@@ -35,7 +35,7 @@ GND -----------------------E
 
 ### DATA vstup + pull-up
 ```
-DATA vodič ----[1k]---- UNO D8 (RX, SoftwareSerial)
+DATA vodič ----[1k]---- UNO D4 (RX, SoftwareSerial)
       |
      [4k7]
       |
@@ -43,7 +43,7 @@ DATA vodič ----[1k]---- UNO D8 (RX, SoftwareSerial)
 ```
 
 - Pull-up pouze na straně UNO.
-- TX pro UNO diagnostiku: D9 (volitelné, běžně nepoužité).
+- TX pro UNO diagnostiku: D5 (volitelné, běžně nepoužité).
 - GND mezi UNO a NANO musí být společná.
 
 ---
@@ -72,8 +72,8 @@ Arduino Pin    TFT Pin    Popis
 5V             VCC        Napájení
 GND            GND        Zem
 Pin 10         CS         Chip Select
-A1             DC         Data/Command
-A2             RST        Reset
+8              DC         Data/Command
+9              RST        Reset
 Pin 11 (MOSI)  SDA        Serial Data
 Pin 13 (SCK)   SCL        Serial Clock
 ```

@@ -22,6 +22,10 @@ Komunikace: `P,<adc>,<crc>\n` při 9600 Bd.
    - DATA (open-collector dle `zapojeni_schema.txt`)
 4. Ověř, že UNO přijímá data (na TFT stav `OK`, při výpadku `ERROR`).
 
+Poznámky k pinům (v2):
+- TFT ST7789: CS=10, DC=8, RST=9, MOSI=11, SCK=13
+- 1-wire UART (UNO): RX=D4, TX=D5 (vyhýbá se TFT pinům 8/9/10/11/13)
+
 ## 📁 Struktura projektu
 
 ```
@@ -47,3 +51,21 @@ Původní analogová varianta (A0 po dlouhém kabelu + MCP6001/MCP6002 + RC filt
 - Kompletní popis projektu: `PROJEKT.md`
 - Aktuální zapojení v2: `zapojeni_schema.txt`
 - Archivní analogové zapojení: `legacy/zapojeni_schema_v1.txt`
+
+## Versioning
+
+Verze FW je v `rotator_main/version.h` (MAJOR.MINOR.PATCH).  
+Při každé mezizměně bumpni `MINOR` (např. 2.1.0 -> 2.2.0).
+
+## Recent Changes
+
+- V2: boot screen + semver v `version.h`
+- V2: RX/TX pro 1-wire přes D4/D5 (nekoliduje s TFT)
+
+## Troubleshooting: DATA stuck LOW (~0.5 V)
+
+1. Odpoj bázi tranzistoru na NANO: DATA musí být ~5 V (pull-up OK).
+2. Na NANO musí být TX pin v idle HIGH ještě před `linkSerial.begin()`:
+   - `pinMode(TX_PIN, OUTPUT);`
+   - `digitalWrite(TX_PIN, LOW);` (při použitém NPN a inverted UART)
+3. Zkontroluj orientaci C/E tranzistoru a pull-up 4k7 na straně UNO.
